@@ -346,6 +346,7 @@ func (r *Raft) becomeFollower(term uint64, lead uint64) {
 	r.Lead = lead
 	r.votes = nil
 	r.voteCount = 0
+	r.denialCount = 0
 	r.leadTransferee = None
 	r.resetTick()
 }
@@ -498,7 +499,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 
 	//log doesn't contain matched entry
 	term,err := r.RaftLog.Term(m.Index)
-	if err != nil || term != m.LogTerm{
+	if err != nil || term != m.LogTerm {
 		r.sendAppendResponse(m.From,true)
 		return
 	}
@@ -525,7 +526,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 		}
 	}
 
-	//leader commit > commitINdex
+	//leader commit > commitIndex
 	if m.Commit > r.RaftLog.committed{
 		lastNewEntry := m.Index
 		if len(m.Entries) > 0 {
@@ -542,6 +543,7 @@ func (r *Raft) sendAppendResponse(to uint64, reject bool)  {
 		From: r.id,
 		To: to,
 		Term: r.Term,
+		Reject: reject,
 		Index: r.RaftLog.LastIndex(),
 	}
 	r.msgs = append(r.msgs,msg)
@@ -682,7 +684,7 @@ func (r *Raft) handleSnapshot(m pb.Message) {
 }
 
 func (r *Raft) updateCommit()  {
-	commiteUpdate := false
+	commitUpdate := false
 	for i := r.RaftLog.committed; i <= r.RaftLog.LastIndex(); i++{
 		if i <= r.RaftLog.committed{
 			continue
@@ -696,10 +698,10 @@ func (r *Raft) updateCommit()  {
 		term,_ := r.RaftLog.Term(i)
 		if matchCnt > len(r.Prs)/2 && term == r.Term && r.RaftLog.committed != i{
 			r.RaftLog.committed = i
-			commiteUpdate = true
+			commitUpdate = true
 		}
 	}
-	if commiteUpdate{
+	if commitUpdate{
 		r.broadcastAppend()
 	}
 }
@@ -731,7 +733,7 @@ func (r *Raft) removeNode(id uint64) {
 
 func (r *Raft) handleAppendResponse(m pb.Message) {
 	if m.Term > r.Term{
-		r.becomeFollower(m.From,None)
+		r.becomeFollower(m.Term,None)
 		return
 	}
 	if !m.Reject {
@@ -793,14 +795,18 @@ func (r *Raft) handleVoteResponse(m pb.Message) {
 	if !m.Reject {
 		r.votes[m.From] = true
 		r.voteCount += 1
+		//println("not reject %d", m.From)
 	}else{
 		r.votes[m.From] = false
 		r.denialCount += 1
+		//println("reject %d", m.From)
 	}
-	if r.voteCount > len(r.Prs)/2 {
+	if r.voteCount > (len(r.Prs)/2) {
 		r.becomeLeader()
-	}else if r.denialCount > len(r.Prs)/2 {
+		//println("vote success %d %d", m.From, m.Reject)
+	}else if r.denialCount > (len(r.Prs)/2) {
 		r.becomeFollower(r.Term,r.Lead)
+		//println("vote fail %d %d", m.From, m.Reject)
 	}
 }
 

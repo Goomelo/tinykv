@@ -64,7 +64,7 @@ func newLog(storage Storage) *RaftLog {
 	firstIndex,_  := storage.FirstIndex()
 	lastIndex,_ := storage.LastIndex()
 	entrys := make([]pb.Entry,0)
-	if lastIndex<= firstIndex {
+	if firstIndex<= lastIndex {
 		entrys,err = storage.Entries(firstIndex, lastIndex+1)
 		if err!=nil{
 			panic(err)
@@ -91,7 +91,7 @@ func (l *RaftLog) maybeCompact() {
 // unstableEntries return all the unstable entries
 func (l *RaftLog) unstableEntries() []pb.Entry {
 	// Your Code Here (2A).
-	if len(l.entries) > 0 && l.stabled+1 >= l.firstIndex{
+	if len(l.entries) > 0 && l.stabled+1 >= l.firstIndex {
 		return l.entries[l.stabled-l.firstIndex+1:]
 	}
 	return nil
@@ -156,8 +156,8 @@ func (l *RaftLog) Entries(lo uint64,hi uint64)  []pb.Entry{
 }
 
 func (l *RaftLog) RemoveEntriesAfter(lo uint64)  {
-	l.stabled = min(l.stabled,lo-1)
-	if lo -l.firstIndex >= uint64(len(l.entries)){
+	l.stabled = min(l.stabled, lo-1)
+	if lo-l.firstIndex >= uint64(len(l.entries)) {
 		return
 	}
 	l.entries = l.entries[:lo-l.firstIndex]

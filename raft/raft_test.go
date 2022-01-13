@@ -17,11 +17,10 @@ package raft
 import (
 	"bytes"
 	"fmt"
+	pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
 	"math/rand"
 	"reflect"
 	"testing"
-
-	pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
 )
 
 // returns a new MemoryStorage with only ents filled
@@ -165,7 +164,7 @@ func TestLeaderElectionOverwriteNewerLogs2AB(t *testing.T) {
 	// Node 1 campaigns again with a higher term. This time it succeeds.
 	n.send(pb.Message{From: 1, To: 1, MsgType: pb.MessageType_MsgHup})
 	if sm1.State != StateLeader {
-		t.Errorf("state = %s, want StateLeader", sm1.State)
+		t.Errorf("state = %s, want StateLeader %d", sm1.State,n.peers[4].(*Raft).Vote)
 	}
 	if sm1.Term != 3 {
 		t.Errorf("term = %d, want 3", sm1.Term)

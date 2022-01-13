@@ -503,8 +503,12 @@ func TestLeaderCommitPrecedingEntries2AB(t *testing.T) {
 		li := uint64(len(tt))
 		wents := append(tt, pb.Entry{Term: 3, Index: li + 1}, pb.Entry{Term: 3, Index: li + 2, Data: []byte("some data")})
 		if g := r.RaftLog.nextEnts(); !reflect.DeepEqual(g, wents) {
-			t.Errorf("#%d: ents = %+v, want %+v", i, g, wents)
+			t.Errorf("#%d: ents = %+v,\n want %+v", i, g, wents)
 		}
+		//else {
+		//	t.Errorf("#%d pass",i)
+		//	//t.Errorf("#%d: ents = %+v,\n want %+v", i, g, wents)
+		//}
 	}
 }
 
@@ -660,7 +664,7 @@ func TestFollowerAppendEntries2AB(t *testing.T) {
 			wents = append(wents, *ent)
 		}
 		if g := r.RaftLog.entries; !reflect.DeepEqual(g, wents) {
-			t.Errorf("#%d: ents = %+v, want %+v", i, g, wents)
+			t.Errorf("#%d: ents = %+v,\n want %+v", i, g, wents)
 		}
 		var wunstable []pb.Entry
 		if tt.wunstable != nil {
